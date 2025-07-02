@@ -7,7 +7,7 @@ function App() {
   const [quote, setQuote] = useState([])
 
   useEffect(()=>{
-    axios.get('http://localhost:3000/quote')
+    axios.get('/api/quote')
     .then((res)=>{
       console.log("Quotes fetched successfully:", res.data)
       setQuote(res.data)
@@ -21,7 +21,7 @@ function App() {
     <>
     <h1>See Your Quotes</h1>
     {quote.map((q)=>{
-      <div key={q.id}>
+      return <div key={q.id}>
         <p>{q.text}</p>
       </div>
     })}

@@ -24,7 +24,7 @@ const qoute = [
         text: 'The best way to predict the future is to create it.'
     }
 ]
-app.get('/quote', (req, res) => {
+app.get('/api/quote', (req, res) => {
     res.send(qoute);
 })
 
