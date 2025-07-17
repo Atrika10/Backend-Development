@@ -16,6 +16,10 @@ connectDB()
         app.on('error', (err)=>{
             console.error("Error occurred in the application:", err);
         })
+
+        app.get("/", (req, res)=>{
+            res.send("Welcome to the Video Platform API");
+        })
         // Start the server or perform other operations here
         app.listen(PORT, ()=>{
             console.log(`Server is running on port ${PORT}`);
