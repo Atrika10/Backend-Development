@@ -3,6 +3,7 @@ console.log("hello world");
 import { app } from "./app.js";
 import dotenv from "dotenv";
 import connectDB from "./db/index.js";
+import userRouter from "./routes/user.routes.js";
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ connectDB()
         app.get("/", (req, res)=>{
             res.send("Welcome to the Video Platform API");
         })
+        app.use("/api/v1/users", userRouter);
         // Start the server or perform other operations here
         app.listen(PORT, ()=>{
             console.log(`Server is running on port ${PORT}`);
