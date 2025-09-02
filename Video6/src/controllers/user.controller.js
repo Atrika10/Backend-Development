@@ -26,9 +26,9 @@ const userRegister = asyncHandler(async (req, res) => {
     }
 
     // handle Images => multer middleware gives you access of req.files
-    const avatarLocalPath = req.files?.avatar[0]?.path;
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
 
-    const coverImgLocalPath = req.files?.CoverImg[0]?.path;
+    const coverImgLocalPath = req.files?.coverImage?.[0]?.path;
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar is required");
@@ -36,9 +36,16 @@ const userRegister = asyncHandler(async (req, res) => {
     }
 
     //get the localpath now upload to the cloudinary
-    const avatarResponse = await uploadOnCloudinary(avatarLocalPath);
+    let avatarResponse = "";
+    let coverImgResponse = "";
 
-    const coverImgResponse = await uploadOnCloudinary(coverImgLocalPath);
+
+    if(avatarLocalPath){
+        avatarResponse = await uploadOnCloudinary(avatarLocalPath);
+    }
+    if(coverImgLocalPath){
+        coverImgResponse = await uploadOnCloudinary(coverImgLocalPath);
+    }
 
     
     // check once more, did you get avatarResponse or not
@@ -54,7 +61,7 @@ const userRegister = asyncHandler(async (req, res) => {
         userName : userName.toLowerCase(),
         password,
         avatar: avatarResponse.url,
-        coverImg: coverImgResponse?.url || "",
+        coverImage: coverImgResponse?.url || "",
 
     })
 
