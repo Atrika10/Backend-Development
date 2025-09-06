@@ -4,6 +4,33 @@ import uploadOnCloudinary from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 
+const generateAccessTokenAndRefreshToken = async (userId)=>{
+    try {
+        // find user from userId
+        const user = await User.findById(userId);
+        if(!user){
+            throw new ApiError(404, "User not found");
+        } 
+        
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+
+        // we'll store refreshToken in mongoDB so that later we can compare
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+
+
+        return {
+            accessToken,
+            refreshToken
+        }
+
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong While generating access & refresh token");
+    } 
+}
+
 const userRegister = asyncHandler(async (req, res) => {
 
     // get data from frontend
@@ -40,25 +67,25 @@ const userRegister = asyncHandler(async (req, res) => {
     let coverImgResponse = "";
 
 
-    if(avatarLocalPath){
+    if (avatarLocalPath) {
         avatarResponse = await uploadOnCloudinary(avatarLocalPath);
     }
-    if(coverImgLocalPath){
+    if (coverImgLocalPath) {
         coverImgResponse = await uploadOnCloudinary(coverImgLocalPath);
     }
 
-    
+
     // check once more, did you get avatarResponse or not
-    if(!avatarResponse) {
+    if (!avatarResponse) {
         throw new ApiError(400, "Avatar upload failed");
 
     }
 
     // create a user object & put it to the db
-    const user =  await User.create({
+    const user = await User.create({
         fullName,
         email,
-        userName : userName.toLowerCase(),
+        userName: userName.toLowerCase(),
         password,
         avatar: avatarResponse.url,
         coverImage: coverImgResponse?.url || "",
@@ -69,7 +96,7 @@ const userRegister = asyncHandler(async (req, res) => {
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
     // check for user creation
-    if(!createdUser){
+    if (!createdUser) {
         throw new ApiError(500, "Something went wrong while registering the user");
 
     }
@@ -81,4 +108,71 @@ const userRegister = asyncHandler(async (req, res) => {
 
 })
 
-export { userRegister }; 
+const userLogin = asyncHandler(async (req, res)=>{
+    // get data from frontend
+    // validation
+    // find user
+    // generate access & refresh token
+    // send response to the user
+
+    const {userName, email, password } = req.body;
+    if(!userName || !email){
+        throw new ApiError(400, "email or userName is required");
+    }
+
+    const user = await User.findOne({
+        $or:[
+            {email},
+            {userName}
+        ]
+    })
+
+    if(!user){
+        throw new ApiError(404, "User not found");
+    }
+    // check password is correct or not
+    const isPasswordCorrect = user.isPasswordCorrect(password);
+    if(!isPasswordCorrect){
+        throw new ApiError(401, "Invalid credentials");
+    }
+
+
+    // generate tokens
+    const {accessToken, refreshToken} =  await generateAccessTokenAndRefreshToken(user._id);
+
+    // call db again as refreshToken is not available in user right now as we've called this function later
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+    if(!loggedInUser){
+        throw new ApiError(404, "User not found");
+    }
+
+    // we need options as we'll use cookies
+    const options = {
+        httpOnly: true,
+        secure : true
+    }
+    // send response to the user through cookies
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            "User logged in successfully",
+            {
+             user : loggedInUser,
+             accessToken,
+             refreshToken
+            
+            }
+        )
+    )
+    
+
+})
+
+export {
+    userRegister
+}; 
