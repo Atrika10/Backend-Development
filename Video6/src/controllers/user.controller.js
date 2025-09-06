@@ -180,9 +180,14 @@ const logOutUser = asyncHandler(async (req, res)=>{
     if(!user){
         throw new ApiError(404, "User not found");
     }
-    user.refreshToken = "";
-    await user.save({validateBeforeSave: false});
+    // user.refreshToken = "";
+    // await user.save({validateBeforeSave: false});
 
+    await User.findByIdAndUpdate(user._id, {
+        $unset: {
+            refreshToken: 1
+        }
+    })
     const options = {
         httpOnly: true,
         secure : true
