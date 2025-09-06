@@ -3,6 +3,7 @@ import { User } from "../models/user.model.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/apiResponse.js";
+import { json } from "express";
 
 const generateAccessTokenAndRefreshToken = async (userId)=>{
     try {
@@ -114,7 +115,7 @@ const userLogin = asyncHandler(async (req, res)=>{
     // find user
     // generate access & refresh token
     // send response to the user
-
+    console.log("reqqqqqqqq bodyyyyyyyyy", req.body);
     const {userName, email, password } = req.body;
     if(!userName || !email){
         throw new ApiError(400, "email or userName is required");
@@ -173,6 +174,31 @@ const userLogin = asyncHandler(async (req, res)=>{
 
 })
 
+
+const logOutUser = asyncHandler(async (req, res)=>{
+    const user = req.user;
+    if(!user){
+        throw new ApiError(404, "User not found");
+    }
+    user.refreshToken = "";
+    await user.save({validateBeforeSave: false});
+
+    const options = {
+        httpOnly: true,
+        secure : true
+    }
+    
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(
+        new ApiResponse(200, "User logged out successfully")
+    )
+
+})
 export {
-    userRegister
+    userRegister,
+    userLogin,
+    logOutUser
 }; 
