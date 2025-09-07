@@ -247,9 +247,46 @@ const generateAccessToken = asyncHandler(async (req, res)=>{
     )
   
 })
+
+const changeCurrentPassword = asyncHandler(async (req, res)=>{
+    const {oldPassword, newPassword} = req.body;
+    // to change current password I need user, as this is secure route then I'll have req.user
+    // first I'll check old password of this user is correct or not?
+    // if correct then we'll update newPW
+    const user = req.user;
+    if(!user){
+        throw new ApiError(404, "User not found");
+    }
+
+   const isOldPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+   if(!isOldPasswordCorrect){
+    throw new ApiError(401, "Invalid old password");
+   }
+
+   user.password = newPassword;
+   await user.save({validateBeforeSave: false});
+
+   return res.status(200).json(
+    new ApiResponse(200, "Password changed successfully")
+   )
+    
+})
+
+const getCurrentUser = asyncHandler(async (req, res)=>{
+    const user = req.user;
+    if(!user){
+        throw new ApiError(404, "User not found");
+    }
+    return res.status(200).json(
+        new ApiResponse(200, "User fetched successfully", user)
+    )
+
+})
 export {
     userRegister,
     userLogin,
     logOutUser,
-    generateAccessToken
+    generateAccessToken,
+    changeCurrentPassword,
+    getCurrentUser
 }; 
