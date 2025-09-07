@@ -3,7 +3,8 @@ import { User } from "../models/user.model.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import { json } from "express";
+import jwt from "jsonwebtoken";
+
 
 const generateAccessTokenAndRefreshToken = async (userId)=>{
     try {
@@ -202,8 +203,53 @@ const logOutUser = asyncHandler(async (req, res)=>{
     )
 
 })
+
+const generateAccessToken = asyncHandler(async (req, res)=>{
+    
+   const inComingRefreshToken = req.cookies?.refreshToken || req.header("Authorization")?.replace("Bearer ", "");
+   if(!inComingRefreshToken){
+    throw new ApiError(401, "Unauthorized Request");
+   }
+   const decodeToken = jwt.verify(inComingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+   const user = await User.findById(decodeToken._id);
+   if(!user){
+    throw new ApiError(404, "User not found");
+   }
+
+   if(inComingRefreshToken !== user.refreshToken){
+    throw new ApiError(401, "Invalid refresh token");
+   }
+
+   const {accessToken, refreshToken} =  await generateAccessTokenAndRefreshToken(user._id);
+
+   console.log("My new Generated tokens", accessToken, refreshToken);
+   
+   // as I'll send accessToken & refreshToken in cookies I need options
+   const options = {
+    httpOnly: true,
+    secure : true
+   }
+   return res
+   .status(200)
+   .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(
+            200,
+            "Access token generated successfully",
+            {
+                accessToken,
+                refreshToken
+            }
+
+        )
+    )
+  
+})
 export {
     userRegister,
     userLogin,
-    logOutUser
+    logOutUser,
+    generateAccessToken
 }; 
