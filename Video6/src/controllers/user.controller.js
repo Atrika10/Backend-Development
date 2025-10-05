@@ -314,7 +314,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
     }
 
     const avatarLocalPath = req.file?.path;
-    if(!avatarLocalPath){
+    if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar is required");
     }
 
@@ -327,8 +327,8 @@ const updateAvatar = asyncHandler(async (req, res) => {
     const updateUser = await User.findByIdAndUpdate(
         user?._id,
         {
-            $set : {
-                avatar : avatar.url
+            $set: {
+                avatar: avatar.url
             }
         }
     ).select("-password");
@@ -338,36 +338,113 @@ const updateAvatar = asyncHandler(async (req, res) => {
     )
 })
 
-const updateCoverImage = asyncHandler(async(req, res)=>{
+const updateCoverImage = asyncHandler(async (req, res) => {
     const user = req.user;
     if (!user) {
         throw new ApiError(404, "User not found");
     }
 
     const coverImageLocalPath = req.file?.path;
-    if(!coverImageLocalPath){
+    if (!coverImageLocalPath) {
         throw new ApiError(400, "Cover image is required");
     }
 
     const coverimage = await uploadOnCloudinary(coverImageLocalPath);
 
-    if( !coverimage.url) {
+    if (!coverimage.url) {
         throw new ApiError(400, "Error while uploading cover image");
     }
 
     const updateUser = await User.findByIdAndUpdate(
         user?._id,
         {
-            $set :{
-                coverImage : coverimage.url
+            $set: {
+                coverImage: coverimage.url
             }
         },
-        {new :true}
+        { new: true }
     ).select("-password");
 
     return res.status(200).json(
         new ApiResponse(200, "Cover image updated successfully", updateUser)
     )
+})
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    const { userName } = req.params;
+    if (!userName) {
+        throw new ApiError(400, "userName is required");
+    }
+
+    const channelInfo = await User.aggregate([
+        {
+            $match: {
+                userName: userName?.toLowerCase()
+            }
+        }, // stage 1 : Got 1 user by userName
+        {
+            $lookup: {
+                from: "subscriptions", // collection name from which you want to join
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        }, // stage 2 : join with subscriptions collection to get all subscribers of this channel
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedChannels"
+            }
+        },// stage 3 : join with subscriptions collection to get all channels to which this user has subscribed
+        {
+            $addFields: {
+                subscriberCount: {
+                    $size: "$subscribers"
+                },
+                subscribeChannelsCount: {
+                    $size: "$subscribedChannels"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {
+                            $in: [req.user?._id, "$subscribers.subscriber"] // check whether the logged in user is present in the subscribers list of this channel
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        }, // stage 4 : add 2 more fields subscriberCount & subscribedChannelsCount to the user object
+        {
+            $project: {
+                fullName: 1,
+                userName: 1,
+                subscriberCount: 1,
+                subscribeChannelsCount:1,
+                isSubscribed : 1,
+                email: 1,
+                avatar: 1,
+                coverImage: 1,
+                createdAt: 1
+
+            }
+
+        }// stage 5 : project the fields which you want to send to the frontend
+    ])
+
+    console.log("channelInfo**********", channelInfo);
+
+    if(!channelInfo?.length){
+        throw new ApiError(404, "Channel does not exist");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, "Channel info fetched successfully", channelInfo[0])
+    )
+
+
 })
 export {
     userRegister,
@@ -378,5 +455,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateAvatar,
-    updateCoverImage
+    updateCoverImage,
+    getUserChannelProfile
 }; 
