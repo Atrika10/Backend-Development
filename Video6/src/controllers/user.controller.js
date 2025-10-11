@@ -185,11 +185,17 @@ const logOutUser = asyncHandler(async (req, res) => {
     // user.refreshToken = "";
     // await user.save({validateBeforeSave: false});
 
-    await User.findByIdAndUpdate(user._id, {
-        $unset: {
-            refreshToken: 1
+    await User.findByIdAndUpdate(
+        user._id,
+        {
+            $unset: {
+                refreshToken: 1
+            }
+        },
+        {
+            new: true
         }
-    })
+    )
     const options = {
         httpOnly: true,
         secure: true
@@ -301,6 +307,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         { new: true }
     ).select("-password");
 
+    console.log("Account details updated successfully", user);
     return res
         .status(200)
         .json(
