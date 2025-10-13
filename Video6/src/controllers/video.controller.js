@@ -1,9 +1,9 @@
-import mongoose, {isValidObjectId} from "mongoose"
-import {Video} from "../models/video.model.js"
-import {User} from "../models/user.model.js"
-import {ApiError} from "../utils/apiError.js"
-import {ApiResponse} from "../utils/apiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
+import mongoose, { isValidObjectId } from "mongoose"
+import { Video } from "../models/video.model.js"
+import { User } from "../models/user.model.js"
+import { ApiError } from "../utils/apiError.js"
+import { ApiResponse } from "../utils/apiResponse.js"
+import { asyncHandler } from "../utils/asyncHandler.js"
 import uploadOnCloudinary from "../utils/cloudinary.js"
 
 
@@ -13,8 +13,39 @@ const getAllVideos = asyncHandler(async (req, res) => {
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description} = req.body
+    const { title, description } = req.body
+    const user = req.user;
+    //console.log("req.file", req.files);
+    // console.log("req.files", req.files?.videoFile);
+    // console.log("req.files", req.files?.thumbnail);
     // TODO: get video, upload to cloudinary, create video
+    const videoFile = req.files?.videoFile?.[0]
+    const thumbnail = req.files?.thumbnail?.[0];
+
+    if (!videoFile || !thumbnail) {
+        return new ApiError(400, "video and thumbnail are required")
+    }
+
+    const videoUrl = await uploadOnCloudinary(videoFile.path);
+    const thumbnailUrl = await uploadOnCloudinary(thumbnail.path);
+    //console.log("cloudinary url", thumbnailUrl);
+
+    const uploadedVideo = await Video.create({
+        videoUrl: videoUrl.secure_url,
+        thumbnail: thumbnailUrl.secure_url,
+        title,
+        description,
+        duration: videoUrl.duration,
+        owner: user._id
+    })
+
+    return res.status(201).json(
+        new ApiResponse(
+            201,
+            "video published successfully",
+             uploadedVideo
+        )
+    )
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
