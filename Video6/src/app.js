@@ -54,7 +54,7 @@ app.use("/api/v1/tweets", tweetRouter) // done
 app.use("/api/v1/subscriptions", subscriptionRouter)
 app.use("/api/v1/videos", videoRouter) //done
 app.use("/api/v1/comments", commentRouter) //done
-app.use("/api/v1/likes", likeRouter)
-app.use("/api/v1/playlist", playlistRouter)
+app.use("/api/v1/likes", likeRouter)       // I've to recheck
+app.use("/api/v1/playlist", playlistRouter) 
 app.use("/api/v1/dashboard", dashboardRouter)
 export { app };
