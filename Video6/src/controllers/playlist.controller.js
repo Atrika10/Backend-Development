@@ -77,6 +77,22 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const { playlistId, videoId } = req.params
     // TODO: remove video from playlist
 
+    const updatedPlaylist = await Playlist.findByIdAndUpdate(
+        playlistId,
+        {
+            $pull : {
+                videos : new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            new : true
+        }
+    )
+
+    return res.status(200).json(
+        new ApiResponse(200, "Video removed successfully", true, updatedPlaylist)
+    )
+
 
 })
 

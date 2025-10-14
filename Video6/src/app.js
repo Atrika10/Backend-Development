@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import morgan from 'morgan'
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use(express.static('public')); // why we're using public folder?
 // why we're using cookie-parser?
 //we use cookie-parser to access cookies of user's browser & set cookies in user's browser.
 app.use(cookieParser());
+app.use(morgan("dev"));
 
 // routes import
 import healthcheckRouter from './routes/healthcheck.routes.js'
